@@ -1,0 +1,26 @@
+[package]
+name = "mcp-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "cookies"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenvy = "0.15"
+async-trait = "0.1"
+regex = "1.10"
+urlencoding = "2.1"
+
+
+
+[[bin]]
+name = "archery-server"
+path = "src/bin/archery_server.rs"
+
+[[bin]]
+name = "graylog-server"
+path = "src/bin/graylog_server.rs"
+
+
