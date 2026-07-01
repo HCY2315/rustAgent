@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let client = resolve_client(&args)?;
             let text = client.list_instances().await?;
             Ok(ToolResult {
-                content: vec![ToolContent::Text { text }],
+                content: vec![ToolContent::Text { text: text.to_string() }],
                 is_error: false,
             })
         }

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
@@ -78,10 +78,10 @@ impl ArcheryClient {
         Ok(session)
     }
 
-    pub async fn list_instances(&self) -> Result<String, String> {
+    pub async fn list_instances(&self) -> Result<Value, String> {
         let session = self.get_session().await?;
         let url = format!("{}/group/user_all_instances/?tag_codes%5B%5D=can_read", session.base_url);
-        
+
         let resp = session.client.get(&url)
             .header("Accept", "application/json, text/javascript, */*; q=0.01")
             .header("X-CSRFToken", &session.csrf_token)
@@ -103,7 +103,10 @@ impl ArcheryClient {
             .ok_or_else(|| "Missing 'data' array in response".to_string())?;
 
         if instances.is_empty() {
-            return Ok("当前用户没有可访问的数据库实例。".to_string());
+            return Ok(json!({
+                "message": "当前用户没有可访问的数据库实例。",
+                "instances": []
+            }));
         }
 
         let mut hotel = Vec::new();
@@ -123,41 +126,14 @@ impl ArcheryClient {
             }
         }
 
-        let mut lines = vec![
-            format!("✅ 登录成功，共 {} 个可用数据库实例", instances.len()),
-            "".to_string(),
-        ];
+        let result = json!({
+            "message": format!("登录成功，共 {} 个可用数据库实例", instances.len()),
+            "hotel": hotel,
+            "other": other,
+            "instances": instances
+        });
 
-        fn display_name(name: &str) -> String {
-            match name {
-                "hotel_distribution" => format!("{}（同程FP酒店）", name),
-                "hotel_distribution_dy_sp" => format!("{}（抖音SP酒店）", name),
-                "hotel_distribution_public" => format!("{}（酒店-公共）", name),
-                "hotel_distribution_sp" => format!("{}（同程SP酒店）", name),
-                _ => name.to_string(),
-            }
-        }
-
-        if !hotel.is_empty() {
-            lines.push(format!("🏨 **酒店类 ({}个)**", hotel.len()));
-            for h in hotel {
-                lines.push(format!("   - {}", display_name(&h)));
-            }
-            lines.push("".to_string());
-        }
-
-        if !other.is_empty() {
-            lines.push(format!("📦 **其他 ({}个)**", other.len()));
-            for o in other {
-                lines.push(format!("   - {}", o));
-            }
-            lines.push("".to_string());
-        }
-
-        lines.push("---".to_string());
-        lines.push("💡 **下一步**: 选择实例后，使用 list_archery_databases 查看其数据库列表".to_string());
-
-        Ok(lines.join("\n"))
+        Ok(result)
     }
 
     pub async fn list_databases(&self, instance: &str) -> Result<String, String> {
